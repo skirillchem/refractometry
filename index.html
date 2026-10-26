@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Отражение и преломление света · интерактивная модель</title>
+<style>
+  :root{
+    --ink:#0f2233;
+    --muted:#5b7186;
+    --line:#dbe6ee;
+    --accent:#0d7d74;
+    --amber:#b45309;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;min-height:100vh;
+    font-family:"Segoe UI",system-ui,-apple-system,"Inter","Helvetica Neue",Arial,sans-serif;
+    color:var(--ink);line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(1100px 560px at 6% -12%, #d6efe9 0%, rgba(214,239,233,0) 62%),
+      radial-gradient(900px 520px at 103% -8%, #e3e8fb 0%, rgba(227,232,251,0) 58%),
+      #eef4f8;
+    background-attachment:fixed;
+  }
+  [hidden]{display:none !important}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 20px 56px}
+
+  /* ---------- шапка ---------- */
+  .brand{display:flex;align-items:center;gap:13px;margin:0 0 20px}
+  .brand-icon{
+    width:44px;height:44px;border-radius:13px;flex:0 0 auto;
+    background:linear-gradient(145deg,#12978b,#0a5f59);
+    display:grid;place-items:center;
+    box-shadow:0 8px 18px -6px rgba(10,95,89,.55);
+  }
+  .brand-icon svg{width:23px;height:23px;fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .brand h1{margin:0;font-size:15px;font-weight:700}
+  .brand p{margin:1px 0 0;font-size:12.5px;color:var(--muted)}
+
+  .layout{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:18px;align-items:start}
+  .card{
+    background:rgba(255,255,255,.94);
+    border:1px solid var(--line);
+    border-radius:20px;
+    box-shadow:0 22px 55px -32px rgba(15,52,74,.45);
+  }
+
+  /* ---------- сцена ---------- */
+  .viz-card{padding:18px 18px 10px}
+  .viz-head h2{margin:0 0 2px;font-size:17px;letter-spacing:-.01em}
+  .viz-head p{margin:0;font-size:12.5px;color:var(--muted)}
+  #optics{
+    width:100%;height:500px;display:block;margin-top:8px;border-radius:14px;
+    background:#f7fbfd;
+  }
+  .viz-foot{
+    display:flex;justify-content:space-between;gap:12px;
+    padding:9px 4px 0;font-size:11.5px;color:var(--muted);
+  }
+  .legend{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:9px;height:9px;border-radius:50%;background:#e6a23c;display:inline-block}
+  #footNote{font-variant-numeric:tabular-nums}
+
+  /* ---------- панель ---------- */
+  .panel{padding:22px 22px 18px}
+  .panel-head h2{margin:0 0 2px;font-size:17px;letter-spacing:-.01em}
+  .panel-head p{margin:0;font-size:12.5px;color:var(--muted)}
+
+  .law{
+    margin:14px 0 16px;padding:11px 15px 10px;border-radius:14px;
+    background:linear-gradient(180deg,#f5fbfa,#ecf8f5);
+    border:1px solid #d5ece6;
+  }
+  .law-line{
+    font-family:Georgia,"Times New Roman",serif;font-style:italic;
+    font-size:21px;color:#17384d;line-height:1.25;
+  }
+  .law-sub{
+    margin-top:2px;font-size:11.5px;color:var(--muted);
+    font-variant-numeric:tabular-nums;
+  }
+  .law-note{margin-top:5px;font-size:11px;color:#7c93a4}
+
+  .field{margin:0 0 13px}
+  .f-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:2px}
+  .f-head span{font-size:12.5px;color:var(--muted)}
+  .f-head b{font-size:14px;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .f-head b small{font-size:11px;font-weight:600;color:var(--muted)}
+
+  input[type="range"]{
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:20px;margin:0;background:transparent;cursor:pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track{height:5px;border-radius:99px;background:#dfe9f0}
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:17px;height:17px;margin-top:-6px;border-radius:50%;
+    background:#fff;border:3px solid var(--accent);
+    box-shadow:0 2px 5px rgba(13,60,52,.28);
+    transition:transform .1s;
+  }
+  input[type="range"]:active::-webkit-slider-thumb{transform:scale(1.1)}
+  input[type="range"]::-moz-range-track{height:5px;border-radius:99px;background:#dfe9f0}
+  input[type="range"]::-moz-range-thumb{
+    width:17px;height:17px;border-radius:50%;
+    background:#fff;border:3px solid var(--accent);
+    box-shadow:0 2px 5px rgba(13,60,52,.28);
+  }
+  input[type="range"]:focus-visible{outline:3px solid #9adbd2;outline-offset:2px;border-radius:6px}
+
+  .status{
+    display:flex;align-items:flex-start;gap:10px;
+    margin:16px 0 10px;padding:11px 14px;border-radius:12px;
+    background:#eefaf7;border:1px solid #cdeae3;
+    transition:background .2s,border-color .2s;
+  }
+  .status .dot{
+    width:9px;height:9px;border-radius:50%;background:var(--accent);
+    flex:0 0 auto;margin-top:6px;
+    box-shadow:0 0 0 4px rgba(13,125,116,.12);
+  }
+  .status-text{display:flex;flex-direction:column;line-height:1.35}
+  .status-text b{font-size:13.5px;color:#0a6b63}
+  .status-text span{font-size:11.5px;color:#5b7b83}
+  .status.is-tir{background:#fdf6ea;border-color:#f0d9b5}
+  .status.is-tir .dot{background:#d97706;box-shadow:0 0 0 4px rgba(217,119,6,.14)}
+  .status.is-tir .status-text b{color:#a15c00}
+  .status.is-tir .status-text span{color:#8a6a3c}
+  .status.is-flat{background:#f4f7fa;border-color:#dee7ee}
+  .status.is-flat .dot{background:#7d93a5;box-shadow:0 0 0 4px rgba(125,147,165,.14)}
+  .status.is-flat .status-text b{color:#48657a}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .stat{
+    background:#f8fbfd;border:1px solid var(--line);
+    border-radius:11px;padding:8px 10px;
+  }
+  .stat span{display:block;font-size:10.5px;color:var(--muted)}
+  .stat b{display:block;font-size:15px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+
+  .presets{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px}
+  .preset{
+    appearance:none;font:inherit;font-size:11.5px;
+    background:#fff;color:#3d5a6e;border:1px solid #d6e4ec;
+    border-radius:9px;padding:7px 8px;cursor:pointer;
+    transition:background .15s,border-color .15s;
+  }
+  .preset:hover{background:#f4fbf9;border-color:#a9d9d0}
+  .preset:focus-visible{outline:3px solid #9adbd2;outline-offset:2px}
+
+  .panel-foot{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding-top:12px;border-top:1px solid #edf3f7;
+  }
+  .btn{
+    appearance:none;border:0;cursor:pointer;font:inherit;font-weight:600;
+    border-radius:11px;padding:9px 18px;font-size:13px;
+  }
+  .btn-ghost{background:#fff;color:var(--accent);border:1px solid #bcded8}
+  .btn-ghost:hover{background:#f2fbf9}
+  .btn-ghost:focus-visible{outline:3px solid #7fd3c9;outline-offset:2px}
+  .r-note{font-size:11px;color:var(--muted)}
+
+  @media (max-width:960px){
+    .layout{grid-template-columns:1fr}
+    #optics{height:440px}
+  }
+  @media (max-width:560px){
+    .wrap{padding:18px 12px 44px}
+    .panel{padding:18px 16px 14px}
+    .viz-card{padding:14px 12px 8px}
+    #optics{height:380px}
+    .law-line{font-size:19px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="brand">
+    <div class="brand-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M19.1 4.9l-2.8 2.8M7.7 16.3l-2.8 2.8"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Оптика</h1>
+      <p>Отражение, преломление и полное внутреннее отражение</p>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- ================= сцена ================= -->
+    <section class="card viz-card">
+      <div class="viz-head">
+        <h2>Ход луча</h2>
+        <p>Луч падает из верхней среды на границу раздела двух прозрачных сред.</p>
+      </div>
+      <canvas id="optics" role="img" aria-label="Падающий, отражённый и преломлённый лучи на границе двух сред"></canvas>
+      <div class="viz-foot">
+        <span class="legend"><i></i> луч света</span>
+        <span id="footNote"></span>
+      </div>
+    </section>
+
+    <!-- ================= параметры ================= -->
+    <section class="card panel">
+      <div class="panel-head">
+        <h2>Параметры</h2>
+        <p>Меняйте угол падения и показатели преломления сред.</p>
+      </div>
+
+      <div class="law">
+        <div class="law-line">n₁ · sin θ₁ = n₂ · sin θ₂</div>
+        <div class="law-sub" id="lawSub"></div>
+        <div class="law-note">Закон отражения: θ₁′ = θ₁</div>
+      </div>
+
+      <div class="field">
+        <div class="f-head">
+          <span>Угол падения θ₁</span>
+          <b><span id="vTheta">45</span><small>°</small></b>
+        </div>
+        <input type="range" id="sTheta" min="0" max="89" step="1" value="45" aria-label="Угол падения">
+      </div>
+
+      <div class="field">
+        <div class="f-head">
+          <span>Показатель преломления n₁</span>
+          <b id="vN1">1,00</b>
+        </div>
+        <input type="range" id="sN1" min="1" max="2.6" step="0.01" value="1" aria-label="Показатель преломления первой среды">
+      </div>
+
+      <div class="field">
+        <div class="f-head">
+          <span>Показатель преломления n₂</span>
+          <b id="vN2">1,33</b>
+        </div>
+        <input type="range" id="sN2" min="1" max="2.6" step="0.01" value="1.33" aria-label="Показатель преломления второй среды">
+      </div>
+
+      <div class="status" id="statusBox">
+        <span class="dot"></span>
+        <div class="status-text">
+          <b id="statusTitle">Преломление</b>
+          <span id="statusSub"></span>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><span>Угол θ₂</span><b id="stTheta2">—</b></div>
+        <div class="stat" title="Полное внутреннее отражение возможно только при переходе из оптически более плотной среды в менее плотную (n₁ &gt; n₂)">
+          <span>Критический θкр</span><b id="stCrit">—</b>
+        </div>
+        <div class="stat"><span>Отражено</span><b id="stR">—</b></div>
+      </div>
+
+      <div class="presets">
+        <button class="preset" id="preset-0" type="button">воздух → вода</button>
+        <button class="preset" id="preset-1" type="button">воздух → стекло</button>
+        <button class="preset" id="preset-2" type="button">вода → воздух</button>
+        <button class="preset" id="preset-3" type="button">стекло → воздух</button>
+      </div>
+
+      <div class="panel-foot">
+        <button class="btn btn-ghost" id="resetBtn" type="button">Сбросить</button>
+        <span class="r-note">n₁ sin θ₁ = n₂ sin θ₂</span>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ================================================================ */
+  /*  Состояние                                                       */
+  /* ================================================================ */
+
+  const DEFAULTS = { theta: 45, n1: 1.00, n2: 1.33 };
+  const state = { theta: DEFAULTS.theta, n1: DEFAULTS.n1, n2: DEFAULTS.n2 };
+
+  const PRESETS = [
+    { n1: 1.00, n2: 1.33 },
+    { n1: 1.00, n2: 1.50 },
+    { n1: 1.33, n2: 1.00 },
+    { n1: 1.50, n2: 1.00 }
+  ];
+
+  const DEG = 180 / Math.PI;
+
+  /* ================================================================ */
+  /*  Физика                                                          */
+  /* ================================================================ */
+
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+  function optics() {
+    const th1 = state.theta / DEG;
+    const s1 = Math.sin(th1);
+    const c1 = Math.cos(th1);
+
+    const sin2 = (state.n1 / state.n2) * s1;
+    const tir = sin2 > 1 + 1e-12;
+    const th2 = tir ? null : Math.asin(clamp(sin2, -1, 1));
+
+    const crit = state.n1 > state.n2 + 1e-9
+      ? Math.asin(clamp(state.n2 / state.n1, -1, 1))
+      : null;
+
+    let R = 1;
+    if (!tir) {
+      const c2 = Math.cos(th2);
+      const rs = (state.n1 * c1 - state.n2 * c2) / (state.n1 * c1 + state.n2 * c2);
+      const rp = (state.n2 * c1 - state.n1 * c2) / (state.n2 * c1 + state.n1 * c2);
+      R = (rs * rs + rp * rp) / 2;
+    }
+
+    return { th1: th1, s1: s1, c1: c1, sin2: sin2, tir: tir, th2: th2, crit: crit, R: R, T: 1 - R };
+  }
+
+  /* ================================================================ */
+  /*  Форматирование                                                  */
+  /* ================================================================ */
+
+  function fmt(v, digits) {
+    return v.toLocaleString("ru-RU", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    });
+  }
+
+  function mediumName(n) {
+    if (Math.abs(n - 1.00) < 0.02) return "воздух";
+    if (Math.abs(n - 1.33) < 0.03) return "вода";
+    if (Math.abs(n - 1.46) < 0.03) return "кварц";
+    if (Math.abs(n - 1.50) < 0.03) return "стекло";
+    if (Math.abs(n - 2.42) < 0.05) return "алмаз";
+    return "";
+  }
+
+  /* ================================================================ */
+  /*  Панель                                                          */
+  /* ================================================================ */
+
+  const sTheta = document.getElementById("sTheta");
+  const sN1 = document.getElementById("sN1");
+  const sN2 = document.getElementById("sN2");
+
+  function syncInputs() {
+    sTheta.value = String(state.theta);
+    sN1.value = String(state.n1);
+    sN2.value = String(state.n2);
+  }
+
+  function update() {
+    const o = optics();
+
+    document.getElementById("vTheta").textContent = String(state.theta);
+    document.getElementById("vN1").textContent = fmt(state.n1, 2);
+    document.getElementById("vN2").textContent = fmt(state.n2, 2);
+
+    /* закон Снеллиуса с числами */
+    if (o.tir) {
+      document.getElementById("lawSub").textContent =
+        "sin θ₂ = " + fmt(o.sin2, 2) + " > 1 — преломлённого луча нет";
+    } else {
+      document.getElementById("lawSub").textContent =
+        fmt(state.n1, 2) + " · " + fmt(o.s1, 3) + " = " +
+        fmt(state.n2, 2) + " · " + fmt(Math.sin(o.th2), 3);
+    }
+
+    /* статус */
+    const box = document.getElementById("statusBox");
+    const title = document.getElementById("statusTitle");
+    const sub = document.getElementById("statusSub");
+    let cls = "";
+
+    if (o.tir) {
+      title.textContent = "Полное внутреннее отражение";
+      sub.textContent = "весь свет возвращается в первую среду";
+      cls = "is-tir";
+    } else if (Math.abs(state.n1 - state.n2) < 0.005) {
+      title.textContent = "Без преломления";
+      sub.textContent = "n₁ = n₂ — луч идёт прямо";
+      cls = "is-flat";
+    } else if (state.n2 > state.n1) {
+      title.textContent = "Преломление к нормали";
+      sub.textContent = "вторая среда оптически плотнее";
+    } else {
+      title.textContent = "Преломление от нормали";
+      sub.textContent = "вторая среда оптически менее плотная";
+    }
+    box.className = "status " + cls;
+
+    /* числа */
+    document.getElementById("stTheta2").textContent =
+      o.tir ? "—" : fmt(o.th2 * DEG, 1) + "°";
+    document.getElementById("stCrit").textContent =
+      o.crit === null ? "—" : fmt(o.crit * DEG, 1) + "°";
+    document.getElementById("stR").textContent = Math.round(o.R * 100) + "%";
+
+    document.getElementById("footNote").textContent =
+      "θ₁ = " + state.theta + "° · " +
+      (o.tir ? "полное отражение" : "θ₂ = " + fmt(o.th2 * DEG, 1) + "°");
+  }
+
+  sTheta.addEventListener("input", function () {
+    state.theta = parseFloat(sTheta.value);
+    update();
+  });
+
+  sN1.addEventListener("input", function () {
+    state.n1 = parseFloat(sN1.value);
+    update();
+  });
+
+  sN2.addEventListener("input", function () {
+    state.n2 = parseFloat(sN2.value);
+    update();
+  });
+
+  PRESETS.forEach(function (preset, i) {
+    document.getElementById("preset-" + i).addEventListener("click", function () {
+      state.n1 = preset.n1;
+      state.n2 = preset.n2;
+      syncInputs();
+      update();
+    });
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", function () {
+    state.theta = DEFAULTS.theta;
+    state.n1 = DEFAULTS.n1;
+    state.n2 = DEFAULTS.n2;
+    syncInputs();
+    update();
+  });
+
+  /* ================================================================ */
+  /*  Анимация                                                        */
+  /* ================================================================ */
+
+  const canvas = document.getElementById("optics");
+  const ctx = canvas && canvas.getContext ? canvas.getContext("2d") : null;
+
+  let W = 0, H = 0, dpr = 1;
+  let phase = 0;
+  let lastTs = 0;
+
+  function resize() {
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    W = Math.max(280, Math.round(rect.width));
+    H = Math.max(320, Math.round(rect.height));
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function roundRect(x, y, w, h, r) {
+    const rr = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rr, y);
+    ctx.lineTo(x + w - rr, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+    ctx.lineTo(x + w, y + h - rr);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+    ctx.lineTo(x + rr, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+    ctx.lineTo(x, y + rr);
+    ctx.quadraticCurveTo(x, y, x + rr, y);
+    ctx.closePath();
+  }
+
+  function beam(a, b, alpha, width) {
+    ctx.lineCap = "round";
+
+    ctx.strokeStyle = "rgba(232,163,61," + (alpha * 0.22) + ")";
+    ctx.lineWidth = width + 8;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(230,158,54," + alpha + ")";
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,246,224," + (alpha * 0.75) + ")";
+    ctx.lineWidth = Math.max(1.2, width * 0.5);
+    ctx.setLineDash([10, 24]);
+    ctx.lineDashOffset = -phase;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLabel(x, y, txt, strong) {
+    ctx.font = (strong ? "700 12px " : "600 11px ") + '"Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(255,255,255,.92)";
+    ctx.strokeText(txt, x, y);
+    ctx.fillStyle = strong ? "#2f4f66" : "#69849a";
+    ctx.fillText(txt, x, y);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+  }
+
+  function pill(x, y, txt) {
+    ctx.font = '600 12px "Segoe UI", system-ui, sans-serif';
+    const w = ctx.measureText(txt).width + 20;
+    roundRect(x, y, w, 26, 8);
+    ctx.fillStyle = "rgba(255,255,255,.82)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(180,205,220,.7)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = "#3d5a6e";
+    ctx.textBaseline = "middle";
+    ctx.fillText(txt, x + 10, y + 13.5);
+    ctx.textBaseline = "alphabetic";
+  }
+
+  function draw() {
+    if (!ctx || !W || !H) return;
+
+    const o = optics();
+    const cx = Math.round(W / 2);
+    const iy = Math.round(H * 0.5);
+
+    ctx.clearRect(0, 0, W, H);
+
+    /* --- среды --- */
+    const topGrad = ctx.createLinearGradient(0, 0, 0, iy);
+    topGrad.addColorStop(0, "#ffffff");
+    topGrad.addColorStop(1, "#f1f9fd");
+    ctx.fillStyle = topGrad;
+    ctx.fillRect(0, 0, W, iy);
+
+    const botGrad = ctx.createLinearGradient(0, iy, 0, H);
+    botGrad.addColorStop(0, "#e8f3fa");
+    botGrad.addColorStop(1, "#d9ebf6");
+    ctx.fillStyle = botGrad;
+    ctx.fillRect(0, iy, W, H - iy);
+
+    const t1 = clamp((state.n1 - 1) / 1.6, 0, 1);
+    const t2 = clamp((state.n2 - 1) / 1.6, 0, 1);
+    ctx.fillStyle = "rgba(60,110,140," + (0.02 + 0.055 * t1) + ")";
+    ctx.fillRect(0, 0, W, iy);
+    ctx.fillStyle = "rgba(40,95,130," + (0.03 + 0.08 * t2) + ")";
+    ctx.fillRect(0, iy, W, H - iy);
+
+    /* --- граница раздела --- */
+    const band = ctx.createLinearGradient(0, iy - 7, 0, iy + 7);
+    band.addColorStop(0, "rgba(185,211,226,0)");
+    band.addColorStop(0.5, "rgba(150,190,212,.5)");
+    band.addColorStop(1, "rgba(185,211,226,0)");
+    ctx.fillStyle = band;
+    ctx.fillRect(0, iy - 7, W, 14);
+
+    ctx.strokeStyle = "rgba(140,180,202,.75)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, iy + 0.5);
+    ctx.lineTo(W, iy + 0.5);
+    ctx.stroke();
+
+    /* --- нормаль --- */
+    ctx.save();
+    ctx.setLineDash([7, 7]);
+    ctx.strokeStyle = "rgba(110,140,160,.55)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(cx, Math.max(8, iy - 170));
+    ctx.lineTo(cx, Math.min(H - 8, iy + 170));
+    ctx.stroke();
+    ctx.restore();
+
+    /* --- длины лучей --- */
+    const sinA = Math.max(o.s1, 1e-4);
+    const cosA = Math.max(o.c1, 1e-4);
+    const L1 = Math.min(320, (cx - 58) / sinA, (iy - 58) / cosA);
+
+    const A = { x: cx - L1 * o.s1, y: iy - L1 * o.c1 }; // начало падающего
+    const B = { x: cx + L1 * o.s1, y: iy - L1 * o.c1 }; // конец отражённого
+    const O = { x: cx, y: iy };
+
+    let C = null;
+    if (!o.tir) {
+      const s2 = Math.sin(o.th2);
+      const c2 = Math.cos(o.th2);
+      const sinB = Math.max(s2, 1e-4);
+      const cosB = Math.max(c2, 1e-4);
+      const L2 = Math.min(340, (W - cx - 58) / sinB, (H - iy - 46) / cosB);
+      C = { x: cx + L2 * s2, y: iy + L2 * c2 };
+    }
+
+    /* --- критический угол --- */
+    if (o.crit !== null) {
+      const cs = Math.max(Math.sin(o.crit), 1e-3);
+      const cc = Math.max(Math.cos(o.crit), 1e-3);
+      const Lc = Math.min(170, (cx - 50) / cs, (iy - 46) / cc);
+      const ex = cx - Lc * Math.sin(o.crit);
+      const ey = iy - Lc * Math.cos(o.crit);
+
+      ctx.save();
+      ctx.setLineDash([5, 7]);
+      ctx.strokeStyle = "rgba(13,125,116,.4)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(cx, iy);
+      ctx.lineTo(ex, ey);
+      ctx.stroke();
+      ctx.restore();
+
+      drawLabel(ex - 14, ey - 8, "θкр", false);
+    }
+
+    /* --- лучи --- */
+    const reflA = o.R < 0.002 ? 0 : 0.25 + 0.75 * Math.pow(o.R, 0.4);
+    const refrA = 0.25 + 0.75 * Math.pow(o.T, 0.4);
+
+    beam(A, O, 1, 2.4);
+    if (reflA > 0) beam(O, B, reflA, 2.4);
+    if (C) beam(O, C, refrA, 2.4);
+
+    /* --- точка падения --- */
+    const glow = ctx.createRadialGradient(cx, iy, 0, cx, iy, 26);
+    glow.addColorStop(0, "rgba(255,214,140,.9)");
+    glow.addColorStop(1, "rgba(255,214,140,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(cx, iy, 26, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#e39b2e";
+    ctx.beginPath();
+    ctx.arc(cx, iy, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* --- углы --- */
+    const r1 = 64;
+    ctx.strokeStyle = "rgba(80,110,130,.45)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, iy, r1, -Math.PI / 2 - o.th1, -Math.PI / 2, false);
+    ctx.stroke();
+
+    const m1 = -Math.PI / 2 - o.th1 / 2;
+    drawLabel(cx + Math.cos(m1) * (r1 + 18), iy + Math.sin(m1) * (r1 + 18),
+      "θ₁ = " + state.theta + "°", true);
+
+    if (!o.tir) {
+      ctx.beginPath();
+      ctx.arc(cx, iy, r1, Math.PI / 2 - o.th2, Math.PI / 2, false);
+      ctx.stroke();
+
+      const m2 = Math.PI / 2 - o.th2 / 2;
+      drawLabel(cx + Math.cos(m2) * (r1 + 18), iy + Math.sin(m2) * (r1 + 18),
+        "θ₂ = " + fmt(o.th2 * DEG, 1) + "°", true);
+    }
+
+    /* --- подписи сред --- */
+    const name1 = mediumName(state.n1);
+    const name2 = mediumName(state.n2);
+    pill(14, 14, "n₁ = " + fmt(state.n1, 2) + (name1 ? " · " + name1 : ""));
+    pill(14, H - 40, "n₂ = " + fmt(state.n2, 2) + (name2 ? " · " + name2 : ""));
+  }
+
+  function frame(ts) {
+    if (!ctx) return;
+    const dt = lastTs ? Math.min(0.05, (ts - lastTs) / 1000) : 0.016;
+    lastTs = ts;
+    phase = (phase + dt * 55) % 100000;
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  function initCanvas() {
+    if (!ctx) return;
+    window.addEventListener("resize", resize);
+    if (window.ResizeObserver) {
+      new window.ResizeObserver(resize).observe(canvas);
+    }
+    resize();
+    requestAnimationFrame(frame);
+  }
+
+  /* ================================================================ */
+  /*  Запуск                                                          */
+  /* ================================================================ */
+
+  syncInputs();
+  update();
+  initCanvas();
+})();
+</script>
+</body>
+</html>
